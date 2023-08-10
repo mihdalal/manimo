@@ -41,10 +41,11 @@ class FrankaArm(Arm):
         self.ik_mode = IKMode(arm_cfg.ik_mode)
         self.JOINT_LIMIT_MIN = arm_cfg.joint_limit_min
         self.JOINT_LIMIT_MAX = arm_cfg.joint_limit_max
-        self.robot = CustomRobotInterace(
+        self.robot = RobotInterface(
             ip_address=self.config.robot_ip, enforce_version=False
         )
-        self.robot.hz = self.hz
+        if self.config.ik_mode == 'DMControl':
+            self.robot.hz = self.hz
         self.kq = arm_cfg.kq
         self.kqd = arm_cfg.kqd
         self.home = (
@@ -227,11 +228,12 @@ class FrankaArm(Arm):
 
     def step(self, action):
         action_obs = {"delta": self.delta, "action": action.copy()}
-
-        # import pdb; pdb.set_trace()
         if self.action_space == ActionSpace.Cartesian:
             if self.ik_mode == IKMode.Polymetis:
-                self._apply_eef_commands(action)
+                self.robot.move_to_ee_pose(action[:3], action[3:], delta=True, time_to_go=None, op_space_interp=False)
+                desired_joint_action = torch.zeros(7)
+                ee_pos_desired = torch.zeros(3)
+                ee_quat_desired = torch.zeros(4)
 
             elif self.ik_mode == IKMode.DMControl:
                 ee_pos_current, ee_quat_current = self.robot.get_ee_pose()

@@ -81,7 +81,7 @@ class SingleArmEnv(Env):
             for i, action in enumerate(actions):
                 # self.actuators[i].step(action)
                 obs.update(self.actuators[i].step(action))
-        self.rate.sleep()
+        # self.rate.sleep()
         obs.update(self.get_obs())
         return obs, 0, False, None
 

@@ -55,7 +55,7 @@ def add_image(
         while not closed.value:
             frames = pipe.poll_for_frames()
             if frames.is_frameset():
-                align.process(frames)
+                frames = align.process(frames)
                 depth_frame = frames.get_depth_frame()
                 color_frame = frames.get_color_frame()
                 if not depth_frame or not color_frame:
@@ -166,6 +166,7 @@ class RealSenseCam(Sensor):
         try:
             if self.window is None:
                 obs[self.name] = self.rgb_frame_queue.get()
+                obs[f"{self.name}_depth"] = self.depth_frame_queue.get()
 
             else:
                 while not self.rgb_frame_queue.empty():

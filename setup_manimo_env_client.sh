@@ -5,8 +5,8 @@ cd ..
 # clone & create *gpu* env
 git clone git@github.com:hengyuan-hu/monometis.git
 cd monometis/
-mamba env create -f polymetis/environment.yml -n manimo-latest
-conda activate manimo-latest
+mamba env create -f polymetis/environment.yml -n manimo
+conda activate manimo
 pip install mkl
 # compile stuff, no need to build libfranka on this machine
 mkdir -p ./polymetis/build
