@@ -3,7 +3,7 @@
 # Install polymetis from source
 cd ..
 # clone & create *gpu* env
-git clone git@github.com:hengyuan-hu/monometis.git
+git clone git@github.com:mihdalal/monometis.git
 cd monometis/
 mamba env create -f polymetis/environment.yml -n manimo
 conda activate manimo
@@ -42,6 +42,6 @@ pip install lxml
 
 # teleop setup
 cd ../
-git clone git@github.com:rail-berkeley/oculus_reader.git
+# git clone git@github.com:rail-berkeley/oculus_reader.git
 cd oculus_reader
 pip install .

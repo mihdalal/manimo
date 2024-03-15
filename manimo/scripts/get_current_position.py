@@ -34,11 +34,13 @@ sensors_cfg = hydra.compose(config_name="sensors")
 faulthandler.enable()
 env = SingleArmEnv(sensors_cfg, actuators_cfg, env_cfg)
 obs = env.get_obs()
+print(obs)
+cam = 'cam1c'
 print(obs['eef_pos'])
-depth = obs['cam1c_depth'][0]
+depth = obs[f'{cam}_depth'][0]
 cv_depth = vis_depth(depth)
 cv2.imwrite('depth.png', cv_depth)
-cv2.imwrite('rgb.png', obs['cam1c'][0][:, :, ::-1])
-img = obs['cam1c'][0][:, :, ::-1]
+cv2.imwrite('rgb.png', obs[f'{cam}'][0][:, :, ::-1])
+img = obs[f'{cam}'][0][:, :, ::-1]
 combined = cv2.addWeighted(img, 0.5, cv_depth, 0.5, 0)
 cv2.imwrite('combined.png', combined)
