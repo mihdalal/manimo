@@ -8,7 +8,7 @@ from manimo.actuators.arms.arm import Arm
 from manimo.actuators.arms.robot_ik.robot_ik_solver import RobotIKSolver
 
 # from manimo.actuators.arms.moma_arm import MujocoArmModel
-from manimo.actuators.controllers.policies import CartesianPDPolicy, JointPDPolicy
+from manimo.actuators.controllers.policies import CartesianPDPolicy, JointPDPolicy, OperationalSpaceLowFreq
 from manimo.teleoperation.teleop_agent import quat_add
 from manimo.utils.helpers import Rate
 from manimo.utils.types import ActionSpace, IKMode
@@ -167,7 +167,6 @@ class FrankaArm(Arm):
         kqd = kqd_ratio * torch.Tensor(self.kqd)
         kx = torch.Tensor(self.robot.metadata.default_Kx)
         kxd = torch.Tensor(self.robot.metadata.default_Kxd)
-
         if action_space == ActionSpace.Joint:
             return toco.policies.HybridJointImpedanceControl(
                 joint_pos_current=q_initial,
@@ -199,6 +198,14 @@ class FrankaArm(Arm):
                 robot_model=self.robot.robot_model,
                 ignore_gravity=True,
             )
+        elif action_space == ActionSpace.OSC:
+            return OperationalSpaceLowFreq(
+                q_current=q_initial,
+                call_freq=self.hz,
+                interm_freq=self.hz,
+                Kp=kq,
+                Kd=kqd,
+            )
 
     def _get_desired_pos_quat(self, eef_pose):
         if self.delta:
@@ -206,7 +213,7 @@ class FrankaArm(Arm):
             ee_pos_desired = ee_pos_cur + torch.Tensor(eef_pose[:3])
 
             # add two quaternions
-            ee_quat_desired = torch.Tensor(quat_add(ee_quat_cur, eef_pose[3:]))
+            ee_quat_desired = torch.Tensor(quat_add(eef_pose[3:], ee_quat_cur))
         else:
             ee_pos_desired = torch.Tensor(eef_pose[:3])
             ee_quat_desired = torch.Tensor(eef_pose[3:])
@@ -253,6 +260,22 @@ class FrankaArm(Arm):
             time.sleep(wait_time)
 
         return update_success
+
+    def _apply_osc_commands(self, eef_pose):
+        eef_pose = torch.tensor(eef_pose)
+        try:
+            self.robot.update_current_policy(
+                {
+                    "ee_pos_desired": eef_pose[..., :3],
+                    "ee_quat_desired": eef_pose[..., 3:],
+                    "new_target": torch.tensor(True),
+                }
+            )
+            rate = Rate(self.hz)
+            rate.sleep()
+        except grpc.RpcError:
+            print('grpc.RpcError in applying osc commands at franka_arm.py')
+            self.reset()
 
     def step(self, action):
         action_obs = {"delta": self.delta, "action": action.copy()}
@@ -312,6 +335,20 @@ class FrankaArm(Arm):
             ) = self.robot.robot_model.forward_kinematics(action)
             action_obs["ee_pos_action"] = ee_pos_desired.numpy()
             action_obs["ee_quat_action"] = ee_quat_desired.numpy()
+        elif self.action_space == ActionSpace.OSC:
+            if self.delta:
+                unscaled_action = action / 100
+            else:
+                unscaled_action = action
+            ee_pos_desired, ee_quat_desired = self._get_desired_pos_quat(
+                unscaled_action
+            )
+            ee_pose = np.concatenate([ee_pos_desired.numpy(), ee_quat_desired.numpy()])
+            for _ in range(5):
+                self._apply_osc_commands(ee_pose)
+
+            action_obs["ee_pos_action"] = ee_pos_desired
+            action_obs["ee_quat_action"] = ee_quat_desired
         return action_obs
 
     def get_obs(self):

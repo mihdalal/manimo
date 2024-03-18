@@ -10,6 +10,7 @@ class ActionSpace(Enum):
     Joint = "Joint"
     Cartesian = "Cartesian"
     JointOnly = "JointOnly"
+    OSC = "OSC"
 
 
 class IKMode(Enum):
