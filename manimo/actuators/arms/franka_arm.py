@@ -344,8 +344,7 @@ class FrankaArm(Arm):
                 unscaled_action
             )
             ee_pose = np.concatenate([ee_pos_desired.numpy(), ee_quat_desired.numpy()])
-            for _ in range(5):
-                self._apply_osc_commands(ee_pose)
+            self._apply_osc_commands(ee_pose)
 
             action_obs["ee_pos_action"] = ee_pos_desired
             action_obs["ee_quat_action"] = ee_quat_desired

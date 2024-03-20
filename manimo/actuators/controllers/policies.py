@@ -1,3 +1,4 @@
+import numpy as np
 from typing import Dict
 
 import torch
@@ -120,7 +121,6 @@ class OperationalSpaceLowFreq(toco.PolicyModule):
             int(self.interm_freq / self.call_freq),
         )[:, None]
 
-        # self.interp_arr = torch.linspace(0, 1, int(self.robot_freq / self.call_freq) + 1)[1:, None]
         self.i = 0
         self.N = self.interp_arr.shape[0]
 
@@ -137,38 +137,26 @@ class OperationalSpaceLowFreq(toco.PolicyModule):
             ee_quat_current
         )
 
-        # self.x_start = ee_pos_current
-        # self.r_start = R.from_quat(ee_quat_current)
-        # self.rv_delta = torch.zeros(3)
         self.invdyn = toco.modules.feedforward.InverseDynamics(
             self.robot_model, ignore_gravity=ignore_gravity
         )
         self.pose_pd = toco.modules.feedback.CartesianSpacePDFast(Kp, Kd)
 
-        # self.p_traj, self.pd_traj, _ = _min_jerk_spaces(self.N, self.N * 1.0 / self.robot_freq)
+        self.default_pos = torch.tensor([0.5043, -0.1783, 0.2649, 0.9984, -0.0554, -0.0092, -0.0040])
+        
+        #TODO: don't hardcode this, these values come from IsaacGym for now
+        self.kp_null = 10
+        self.kd_null = 2 * np.sqrt(self.kp_null)
         # Initialize step count
         self.i = 0
 
     def _update_target(self, pos, quat):
-        # TODO: Compare if target is new. If not, update self.N and self.i
-        # TODO: Plan trajectory
-        # print(self.ee_pos_desired - pos)
-
-        # self.x_start = pos
-
-        # # Plan rotation
-        # self.r_start = R.from_quat(quat)
-        # r_goal = R.from_quat(self.ee_quat_desired)
-        # r_delta = r_goal * self.r_start.inv()
-        # self.rv_delta = r_delta.as_rotvec()
-
         self.ee_pos_trajectory = pos + self.interp_arr * (self.ee_pos_desired - pos)
         quat_start = R.from_quat(quat)
         quat_delta = (R.from_quat(self.ee_quat_desired) * quat_start.inv()).as_rotvec()
         for i in range(self.N):
             r = R.from_rotvec(quat_delta * self.interp_arr[i]) * quat_start
             self.ee_quat_trajectory[i, :] = r.as_quat()
-        # self.ee_quat_trajectory = quat + self.interp_arr * (self.ee_quat_desired - quat)
 
         self.new_target.copy_(torch.tensor(False, dtype=torch.bool))
         self.i = 0
@@ -186,14 +174,7 @@ class OperationalSpaceLowFreq(toco.PolicyModule):
 
         ee_pos_desired = self.ee_pos_trajectory[self.i, :]
         ee_quat_desired = self.ee_quat_trajectory[self.i, :]
-        # ee_twist_desired = self.ee_twist_trajectory[self.i, :]
 
-        # D = self.ee_pos_desired - self.x_start
-        # ee_pos_desired = self.x_start + D * self.p_traj[self.i]
-        # r = R.from_rotvec(self.rv_delta * self.p_traj[self.i]) * self.r_start
-        # ee_quat_desired = r.as_quat()
-        # ee_twist_desired = torch.cat([D, self.rv_delta], dim=-1) * self.pd_traj[self.i]
-        # print(ee_twist_desired)
         # Control logic
         wrench_feedback = self.pose_pd(
             ee_pos_current,
@@ -201,17 +182,32 @@ class OperationalSpaceLowFreq(toco.PolicyModule):
             ee_twist_current,
             ee_pos_desired,
             ee_quat_desired,
-            # ee_twist_desired
             torch.zeros_like(ee_twist_current),
         )
         M_ee = self.robot_model.compute_inertia_ee(q_current)
         torque_feedback = jacobian.T @ M_ee @ wrench_feedback
+        
+        # Nullspace control torques `u_null` prevents large changes in joint configuration
+        # They are added into the nullspace of OSC so that the end effector orientation remains constant
+        mm = self.robot_model.compute_inertia(q_current) # 7x7
+        mm_inv = torch.inverse(mm) # 7x7
+        j_eef_inv = M_ee @ jacobian @ mm_inv # 6x7
+        
+        u_null = self.kd_null * -qd_current + self.kp_null * (
+            (self.default_pos - q_current + torch.pi) % (2 * torch.pi) - torch.pi
+        ) # 7x1
+        u_null = mm @ u_null
+        u_null = (
+            torch.eye(7)
+            - jacobian.T @ j_eef_inv
+        ) @ u_null # 7x1
+        
         # torque_feedforward = self.invdyn(
         #     q_current, qd_current, torch.zeros_like(q_current)
         # )  # coriolis
 
-        torque_out = torque_feedback  # + torque_feedforward
-
+        # torque_out = torque_feedback # + torque_feedforward
+        torque_out = torque_feedback + u_null
         # Increment & termination
         if self.i < self.N - 1:
             self.i += 1
