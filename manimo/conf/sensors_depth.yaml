@@ -1,0 +1,2 @@
+defaults:
+  - camera: multi_real_sense_depth_only

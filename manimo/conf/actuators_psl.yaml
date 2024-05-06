@@ -5,7 +5,7 @@ defaults:
 arm:
   arm0:
     arm_cfg:
-      action_space: 'Cartesian'
-      # delta: True
-      # kq: null
-      # kqd: null
+      action_space: 'OSC'
+      delta: True
+      kq: [150, 150, 150, 3000, 3000, 3000]
+      kqd: [24.49489742783178, 24.49489742783178, 24.49489742783178, 109.54451150103323, 109.54451150103323, 109.54451150103323]

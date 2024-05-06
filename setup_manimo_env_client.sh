@@ -1,21 +1,22 @@
 # #! /bin/sh
 
 # Install polymetis from source
-cd ..
+# cd ..
 # clone & create *gpu* env
-git clone git@github.com:mihdalal/monometis.git
-cd monometis/
-mamba env create -f polymetis/environment.yml -n manimo
-conda activate manimo
-pip install mkl
-# compile stuff, no need to build libfranka on this machine
-mkdir -p ./polymetis/build
-cd ./polymetis/build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j
-cd ../..
+# git clone git@github.com:mihdalal/monometis.git
+# cd monometis/
+# mamba env create -f polymetis/environment.yml -n skills_planning
+# eval "$(conda shell.bash hook)"
+# conda activate skills_planning
+# pip install mkl
+# # compile stuff, no need to build libfranka on this machine
+# mkdir -p ./polymetis/build
+# cd ./polymetis/build
+# cmake .. -DCMAKE_BUILD_TYPE=Release
+# make -j
+# cd ../..
 
-pip install -e ./polymetis
+# pip install -e ./polymetis
 
 # install robobuf
 pip install git+https://github.com/AGI-Labs/robobuf
@@ -41,7 +42,7 @@ pip install dm-control==1.0.5
 pip install lxml
 
 # teleop setup
-cd ../
-# git clone git@github.com:rail-berkeley/oculus_reader.git
-cd oculus_reader
-pip install .
+# cd ../
+# # git clone git@github.com:rail-berkeley/oculus_reader.git
+# cd oculus_reader
+# pip install .

@@ -202,9 +202,9 @@ class OperationalSpaceLowFreq(toco.PolicyModule):
             - jacobian.T @ j_eef_inv
         ) @ u_null # 7x1
         
-        # torque_feedforward = self.invdyn(
-        #     q_current, qd_current, torch.zeros_like(q_current)
-        # )  # coriolis
+        torque_feedforward = self.invdyn(
+            q_current, qd_current, torch.zeros_like(q_current)
+        )  # coriolis
 
         # torque_out = torque_feedback # + torque_feedforward
         torque_out = torque_feedback + u_null

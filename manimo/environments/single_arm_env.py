@@ -63,6 +63,18 @@ class SingleArmEnv(Env):
             obs.update(actuator.get_obs())
         return obs
 
+    def get_img_obs(self) -> ObsDict:
+        obs = {}
+        for sensor in self.sensors:
+            obs.update(sensor.get_obs())
+        return obs
+
+    def get_actuator_obs(self):
+        obs = {}
+        for actuator in self.actuators:
+            obs.update(actuator.get_obs())
+        return obs
+
     def step(
         self, actions: Optional[np.ndarray] = None
     ) -> Tuple[ObsDict, float, bool, Dict]:

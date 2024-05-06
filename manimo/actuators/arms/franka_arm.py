@@ -202,7 +202,7 @@ class FrankaArm(Arm):
             return OperationalSpaceLowFreq(
                 q_current=q_initial,
                 call_freq=self.hz,
-                interm_freq=self.hz,
+                interm_freq=self.hz*4,
                 Kp=kq,
                 Kd=kqd,
             )
@@ -264,15 +264,20 @@ class FrankaArm(Arm):
     def _apply_osc_commands(self, eef_pose):
         eef_pose = torch.tensor(eef_pose)
         try:
-            self.robot.update_current_policy(
-                {
-                    "ee_pos_desired": eef_pose[..., :3],
-                    "ee_quat_desired": eef_pose[..., 3:],
-                    "new_target": torch.tensor(True),
-                }
-            )
-            rate = Rate(self.hz)
-            rate.sleep()
+            for i in range(4):
+                if i == 0:
+                    new_target = True
+                else:
+                    new_target = False
+                self.robot.update_current_policy(
+                    {
+                        "ee_pos_desired": eef_pose[..., :3],
+                        "ee_quat_desired": eef_pose[..., 3:],
+                        "new_target": torch.tensor(new_target),
+                    }
+                )
+                rate = Rate(self.hz*4)
+                rate.sleep()
         except grpc.RpcError:
             print('grpc.RpcError in applying osc commands at franka_arm.py')
             self.reset()
@@ -281,7 +286,7 @@ class FrankaArm(Arm):
         action_obs = {"delta": self.delta, "action": action.copy()}
         if self.action_space == ActionSpace.Cartesian:
             if self.ik_mode == IKMode.Polymetis:
-                self.robot.move_to_ee_pose(action[:3], action[3:], delta=True, time_to_go=None, op_space_interp=False)
+                self.robot.move_to_ee_pose(action[:3], action[3:], delta=False, time_to_go=None, op_space_interp=False)
                 desired_joint_action = torch.zeros(7)
                 ee_pos_desired = torch.zeros(3)
                 ee_quat_desired = torch.zeros(4)
@@ -336,12 +341,8 @@ class FrankaArm(Arm):
             action_obs["ee_pos_action"] = ee_pos_desired.numpy()
             action_obs["ee_quat_action"] = ee_quat_desired.numpy()
         elif self.action_space == ActionSpace.OSC:
-            if self.delta:
-                unscaled_action = action / 100
-            else:
-                unscaled_action = action
             ee_pos_desired, ee_quat_desired = self._get_desired_pos_quat(
-                unscaled_action
+                action
             )
             ee_pose = np.concatenate([ee_pos_desired.numpy(), ee_quat_desired.numpy()])
             self._apply_osc_commands(ee_pose)
