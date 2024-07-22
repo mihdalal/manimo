@@ -2,7 +2,7 @@
 arm0:
   _target_: manimo.actuators.arms.franka_arm.FrankaArm
   arm_cfg:
-    robot_ip: "192.168.1.3"
+    robot_ip: "172.16.0.1"
     hz: 60
     action_space: Joint # (Cartesian, Joint)
     delta: False
