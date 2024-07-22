@@ -11,6 +11,10 @@ cam1:
     warm_start:
       enabled: True
       frames: 60
+    intrinsics: [[387.59545898, 0., 323.97320557], [0., 387.59545898, 242.47912598], [0., 0., 1.]]
+    xyz_shift: [-0.013, 0.025, -0.01]
+    workspace_min: [0.12, -0.7, -0.3]
+    workspace_max: [1.0, 0.7, 1.0]
 
 cam2:
   _target_: manimo.sensors.real_sense_camera.RealSenseCam
@@ -25,6 +29,10 @@ cam2:
     warm_start:
       enabled: True
       frames: 60
+    intrinsics: [[390.51275635, 0., 325.16949463], [0., 390.51275635, 238.4041748], [0., 0., 1.]]
+    xyz_shift: [-0.013, 0.025, -0.01]
+    workspace_min: [0.12, -0.7, -0.3]
+    workspace_max: [1.0, 0.7, 1.0]
 
 cam3:
   _target_: manimo.sensors.real_sense_camera.RealSenseCam
@@ -39,6 +47,10 @@ cam3:
     warm_start:
       enabled: True
       frames: 60
+    intrinsics: [[379.79257202, 0., 325.35546875], [0., 379.79257202, 237.10147095], [0., 0., 1.]]
+    xyz_shift: [-0.013, 0.025, -0.01]
+    workspace_min: [0.12, -0.7, -0.3]
+    workspace_max: [1.0, 0.7, 1.0]
 
 cam4:
   _target_: manimo.sensors.real_sense_camera.RealSenseCam
@@ -53,3 +65,7 @@ cam4:
     warm_start:
       enabled: True
       frames: 60
+    intrinsics: [[385.46884155, 0., 324.0869751], [0., 385.46884155, 233.60623169], [0., 0., 1.]]
+    xyz_shift: [-0.013, 0.025, -0.01]
+    workspace_min: [0.12, -0.7, -0.3]
+    workspace_max: [1.0, 0.7, 1.0]
