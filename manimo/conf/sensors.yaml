@@ -1,5 +1,2 @@
 defaults:
-  # - camera: multi_real_sense
   - camera: multi_real_sense_neural_mp
-  # - camera: real_sense
-#   - tactile: reskin
