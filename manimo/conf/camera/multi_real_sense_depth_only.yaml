@@ -1,16 +1,16 @@
-# cam1:
-#   _target_: manimo.sensors.real_sense_camera.RealSenseCam
-#   camera_cfg:
-#     img_width: 640
-#     img_height: 480
-#     hz: 30
-#     name: "cam1"
-#     device_id: "023322060631"
-#     buffer_size: 1
-#     window_dur: null  # number of seconds to track in buffer
-#     warm_start:
-#       enabled: True
-#       frames: 60
+cam1:
+  _target_: manimo.sensors.real_sense_camera.RealSenseCam
+  camera_cfg:
+    img_width: 640
+    img_height: 480
+    hz: 30
+    name: "cam1"
+    device_id: "023322060631"
+    buffer_size: 1
+    window_dur: null  # number of seconds to track in buffer
+    warm_start:
+      enabled: True
+      frames: 60
 
 cam2:
   _target_: manimo.sensors.real_sense_camera_depth_only.RealSenseCamDepth
@@ -33,7 +33,7 @@ cam3:
     img_height: 480
     hz: 60
     name: "cam3"
-    device_id: "048122070002" # back cam
+    device_id: "048122070002"
     buffer_size: 1
     window_dur: null  # number of seconds to track in buffer
     warm_start:
@@ -48,20 +48,6 @@ cam4:
     hz: 60
     name: "cam4"
     device_id: "102422076289"
-    buffer_size: 1
-    window_dur: null  # number of seconds to track in buffer
-    warm_start:
-      enabled: True
-      frames: 60
-
-cam5:
-  _target_: manimo.sensors.real_sense_camera_depth_only.RealSenseCamDepth
-  camera_cfg:
-    img_width: 640
-    img_height: 480
-    hz: 60
-    name: "cam5"
-    device_id: "031222070082"
     buffer_size: 1
     window_dur: null  # number of seconds to track in buffer
     warm_start:
