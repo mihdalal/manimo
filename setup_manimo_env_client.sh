@@ -3,10 +3,11 @@
 # Install polymetis from source
 cd ..
 # clone & create *gpu* env
-git clone git@github.com:hengyuan-hu/monometis.git
+git clone git@github.com:mihdalal/monometis.git
 cd monometis/
-mamba env create -f polymetis/environment.yml -n manimo-latest
-conda activate manimo-latest
+mamba env create -f polymetis/environment.yml -n skills_planning
+eval "$(conda shell.bash hook)"
+conda activate skills_planning
 pip install mkl
 # compile stuff, no need to build libfranka on this machine
 mkdir -p ./polymetis/build
@@ -39,12 +40,3 @@ pip install opencv-python
 pip install pytimedinput
 pip install dm-control==1.0.5
 pip install lxml
-
-# teleop setup
-cd ../
-git clone git@github.com:rail-berkeley/oculus_reader.git
-cd oculus_reader
-pip install .
-
-cd ../
-pip install -e .

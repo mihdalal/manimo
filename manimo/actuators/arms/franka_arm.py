@@ -8,7 +8,7 @@ from manimo.actuators.arms.arm import Arm
 from manimo.actuators.arms.robot_ik.robot_ik_solver import RobotIKSolver
 
 # from manimo.actuators.arms.moma_arm import MujocoArmModel
-from manimo.actuators.controllers.policies import CartesianPDPolicy, JointPDPolicy
+from manimo.actuators.controllers.policies import CartesianPDPolicy, JointPDPolicy, OperationalSpaceLowFreq
 from manimo.teleoperation.teleop_agent import quat_add
 from manimo.utils.helpers import Rate
 from manimo.utils.types import ActionSpace, IKMode
@@ -41,10 +41,11 @@ class FrankaArm(Arm):
         self.ik_mode = IKMode(arm_cfg.ik_mode)
         self.JOINT_LIMIT_MIN = arm_cfg.joint_limit_min
         self.JOINT_LIMIT_MAX = arm_cfg.joint_limit_max
-        self.robot = CustomRobotInterace(
+        self.robot = RobotInterface(
             ip_address=self.config.robot_ip, enforce_version=False
         )
-        self.robot.hz = self.hz
+        if self.config.ik_mode == 'DMControl':
+            self.robot.hz = self.hz
         self.kq = arm_cfg.kq
         self.kqd = arm_cfg.kqd
         self.home = (
@@ -53,7 +54,6 @@ class FrankaArm(Arm):
             else self.robot.get_joint_positions()
         )
         self._ik_solver = RobotIKSolver()
-        self.reset()
 
     def set_home(self, home):
         self.home = home
@@ -105,6 +105,7 @@ class FrankaArm(Arm):
         self._go_home()
         self.connect()
 
+        print("arm reset")
         obs = self.get_obs()
         return obs, {}
 
@@ -133,13 +134,39 @@ class FrankaArm(Arm):
             self.robot.update_current_policy({"q_desired": joint_position})
             rate.sleep()
 
+    def soft_ctrl(self, action_target, time_to_go=4):
+        goal = torch.Tensor(action_target)
+        
+        # Create policy instance
+        q_initial = self.robot.get_joint_positions()
+        waypoints = toco.planning.generate_joint_space_min_jerk(
+            start=q_initial, goal=goal, time_to_go=time_to_go, hz=self.hz
+        )
+        rate = Rate(self.hz)
+        joint_positions = [waypoint["position"] for waypoint in waypoints]
+
+        q_initial = self.robot.get_joint_positions()
+        kq = torch.Tensor(self.robot.metadata.default_Kq)
+        kqd = torch.Tensor(self.robot.metadata.default_Kqd)
+        policy = JointPDPolicy(
+            desired_joint_pos=q_initial,
+            kq=kq,
+            kqd=kqd,
+        )
+        self.robot.send_torch_policy(policy, blocking=False)
+        rate.sleep()
+        for joint_position in joint_positions:
+            self.robot.update_current_policy({"q_desired": joint_position})
+            rate.sleep()
+            
+        self.connect()
+
     def _default_policy(self, action_space, kq_ratio=1.5, kqd_ratio=1.5):
         q_initial = self.robot.get_joint_positions()
         kq = kq_ratio * torch.Tensor(self.kq)
         kqd = kqd_ratio * torch.Tensor(self.kqd)
         kx = torch.Tensor(self.robot.metadata.default_Kx)
         kxd = torch.Tensor(self.robot.metadata.default_Kxd)
-
         if action_space == ActionSpace.Joint:
             return toco.policies.HybridJointImpedanceControl(
                 joint_pos_current=q_initial,
@@ -171,6 +198,14 @@ class FrankaArm(Arm):
                 robot_model=self.robot.robot_model,
                 ignore_gravity=True,
             )
+        elif action_space == ActionSpace.OSC:
+            return OperationalSpaceLowFreq(
+                q_current=q_initial,
+                call_freq=self.hz,
+                interm_freq=self.hz*4,
+                Kp=kq,
+                Kd=kqd,
+            )
 
     def _get_desired_pos_quat(self, eef_pose):
         if self.delta:
@@ -178,7 +213,7 @@ class FrankaArm(Arm):
             ee_pos_desired = ee_pos_cur + torch.Tensor(eef_pose[:3])
 
             # add two quaternions
-            ee_quat_desired = torch.Tensor(quat_add(ee_quat_cur, eef_pose[3:]))
+            ee_quat_desired = torch.Tensor(quat_add(eef_pose[3:], ee_quat_cur))
         else:
             ee_pos_desired = torch.Tensor(eef_pose[:3])
             ee_quat_desired = torch.Tensor(eef_pose[3:])
@@ -195,6 +230,7 @@ class FrankaArm(Arm):
                 {"joint_pos_desired": q_des_tensor.float()}
             )
         except grpc.RpcError:
+            print('grpc.RpcError in applying joint commands at franka_arm.py')
             self.reset()
 
     def _apply_eef_commands(self, eef_pose, wait_time=3):
@@ -225,13 +261,35 @@ class FrankaArm(Arm):
 
         return update_success
 
+    def _apply_osc_commands(self, eef_pose):
+        eef_pose = torch.tensor(eef_pose)
+        try:
+            for i in range(4):
+                if i == 0:
+                    new_target = True
+                else:
+                    new_target = False
+                self.robot.update_current_policy(
+                    {
+                        "ee_pos_desired": eef_pose[..., :3],
+                        "ee_quat_desired": eef_pose[..., 3:],
+                        "new_target": torch.tensor(new_target),
+                    }
+                )
+                rate = Rate(self.hz*4)
+                rate.sleep()
+        except grpc.RpcError:
+            print('grpc.RpcError in applying osc commands at franka_arm.py')
+            self.reset()
+
     def step(self, action):
         action_obs = {"delta": self.delta, "action": action.copy()}
-
-        # import pdb; pdb.set_trace()
         if self.action_space == ActionSpace.Cartesian:
             if self.ik_mode == IKMode.Polymetis:
-                self._apply_eef_commands(action)
+                self.robot.move_to_ee_pose(action[:3], action[3:], delta=False, time_to_go=None, op_space_interp=False)
+                desired_joint_action = torch.zeros(7)
+                ee_pos_desired = torch.zeros(3)
+                ee_quat_desired = torch.zeros(4)
 
             elif self.ik_mode == IKMode.DMControl:
                 ee_pos_current, ee_quat_current = self.robot.get_ee_pose()
@@ -282,6 +340,15 @@ class FrankaArm(Arm):
             ) = self.robot.robot_model.forward_kinematics(action)
             action_obs["ee_pos_action"] = ee_pos_desired.numpy()
             action_obs["ee_quat_action"] = ee_quat_desired.numpy()
+        elif self.action_space == ActionSpace.OSC:
+            ee_pos_desired, ee_quat_desired = self._get_desired_pos_quat(
+                action
+            )
+            ee_pose = np.concatenate([ee_pos_desired.numpy(), ee_quat_desired.numpy()])
+            self._apply_osc_commands(ee_pose)
+
+            action_obs["ee_pos_action"] = ee_pos_desired
+            action_obs["ee_quat_action"] = ee_quat_desired
         return action_obs
 
     def get_obs(self):
