@@ -1,4 +1,4 @@
-# MANIMO
+# ManiMo
 
 A modular interface for robotic manipulation:
 1. supports a suite of sensors (camera sensors, force sensors, touch sensors, audio sensors) and actuators (robotic arms: panda, and end-effectors).
@@ -6,9 +6,6 @@ A modular interface for robotic manipulation:
 3. allows users to collect demonstrations from the created manipulation environments through
   a. teleoperation (VR, space mouse)
   b. manual control
-
-
-Sure! Here are the instructions formatted as a single markdown block:
 
 ## Prerequisites
 
@@ -23,15 +20,11 @@ Sure! Here are the instructions formatted as a single markdown block:
    ```bash
    export MANIMO_PATH={FOLDER_PATH_TO_MANIMO}/manimo/manimo
    ```
-3. Add `MANIMO_PATH` to `PYTHONPATH` in the `.bashrc` file:
-   ```bash
-   export PYTHONPATH="${PYTHONPATH}:${MANIMO_PATH}"
-   ```
-4. Run the setup script on the client computer. Note that `mamba` setup does not work, always use `miniconda`:
+3. Run the setup script on the client computer. Note that `mamba` setup does not work, always use `miniconda`:
    ```bash
    source setup_manimo_env_client.sh
    ```
-5. Run the setup script on the server computer. Note that `mamba` setup does not work, always use `miniconda`:
+4. Run the setup script on the server computer. Note that `mamba` setup does not work, always use `miniconda`:
    ```bash
    source setup_manimo_env_server.sh
    ```
@@ -44,12 +37,8 @@ python get_current_position.py
 ### Teleop VR Setup
 
 - Install `oculus_reader` VR client:
-  ```bash
-  git clone git@github.com:rail-berkeley/oculus_reader
-  cd oculus_reader
-  pip install .
-  ```
-
+  - follow the instructions [here](https://github.com/rail-berkeley/oculus_reader).
+    
 - Enable developer mode on the Oculus Quest. Follow the instructions at [https://developer.oculus.com/documentation/native/android/mobile-device-setup/](https://developer.oculus.com/documentation/native/android/mobile-device-setup/).
 
 - Install Android ADB tools to communicate with the headset:
@@ -57,11 +46,7 @@ python get_current_position.py
   sudo apt install android-tools-adb
   ```
 
-- Set up Wi-Fi access to the device using the instructions provided at [https://developer.oculus.com/documentation/native/android/ts-adb/](https://developer.oculus.com/documentation/native/android/ts-adb/).
-
-FAQs:
-
-- Update the IP address in the `oculus.yaml` file.
+- (Optional) Set up Wi-Fi access to the device using the instructions provided at [https://developer.oculus.com/documentation/native/android/ts-adb/](https://developer.oculus.com/documentation/native/android/ts-adb/).
 
 ### Zed Camera SDK Install
 
@@ -73,3 +58,8 @@ FAQs:
   
 ## Acknowledgements:
 manimo's design is heavily inspired by [franka_demo](https://github.com/AGI-Labs/franka_demo/tree/dmanus_devel)
+
+## Projects using ManiMo:
+- [An Unbiased Look at Datasets for Visuo-Motor Pre-Training](https://data4robotics.github.io/): Sudeep Dasari, Mohan Kumar Srirama, Unnat Jain, Abhinav Gupta
+- [PlayFusion: Skill Acquisition via Diffusion from Language-Annotated Play](https://play-fusion.github.io/): Lili Chen, Shikhar Bahl, Deepak Pathak
+- [Hearing Touch: Audio-Visual Pretraining for Contact-Rich Manipulation](https://sites.google.com/view/hearing-touch): Jared Mejia, Victoria Dean, Tess Hellebrekers, Abhinav Gupta
