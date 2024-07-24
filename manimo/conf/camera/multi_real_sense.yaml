@@ -1,27 +1,25 @@
 cam0:
-  _target_: manimo.sensors.real_sense_camera.RealSenseCam
+  _target_: manimo.sensors.RealSenseCam
   camera_cfg:
     img_width: 640
     img_height: 480
     hz: 30
     name: "cam0c"
-    device_id: "102422076289"
+    device_id: "818312070212"
     buffer_size: 1
-    window_dur: null  # number of seconds to track in buffer
     warm_start:
       enabled: True
       frames: 60
 
 cam1:
-  _target_: manimo.sensors.real_sense_camera.RealSenseCam
+  _target_: manimo.sensors.RealSenseCam
   camera_cfg:
     img_width: 640
     img_height: 480
     hz: 30
     name: "cam1c"
-    device_id: "137322070789"
+    device_id: "101622070870"
     buffer_size: 1
-    window_dur: null  # number of seconds to track in buffer    
     warm_start:
       enabled: True
       frames: 60
