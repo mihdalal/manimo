@@ -143,7 +143,6 @@ class RealSenseCamDepth(Sensor):
         """
         reset sensor
         """
-        # TODO @mohan: implement reset
         obs = self.get_obs()
         info = {}
         return obs, info

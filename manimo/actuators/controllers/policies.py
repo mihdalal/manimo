@@ -143,8 +143,7 @@ class OperationalSpaceLowFreq(toco.PolicyModule):
         self.pose_pd = toco.modules.feedback.CartesianSpacePDFast(Kp, Kd)
 
         self.default_pos = torch.tensor([0.5043, -0.1783, 0.2649, 0.9984, -0.0554, -0.0092, -0.0040])
-        
-        #TODO: don't hardcode this, these values come from IsaacGym for now
+
         self.kp_null = 10
         self.kd_null = 2 * np.sqrt(self.kp_null)
         # Initialize step count
@@ -206,7 +205,6 @@ class OperationalSpaceLowFreq(toco.PolicyModule):
             q_current, qd_current, torch.zeros_like(q_current)
         )  # coriolis
 
-        # torque_out = torque_feedback # + torque_feedforward
         torque_out = torque_feedback + u_null
         # Increment & termination
         if self.i < self.N - 1:
