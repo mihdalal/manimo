@@ -41,7 +41,7 @@ class FrankaArm(Arm):
         self.ik_mode = IKMode(arm_cfg.ik_mode)
         self.JOINT_LIMIT_MIN = arm_cfg.joint_limit_min
         self.JOINT_LIMIT_MAX = arm_cfg.joint_limit_max
-        self.robot = CustomRobotInterace(
+        self.robot = RobotInterface(
             ip_address=self.config.robot_ip, enforce_version=False
         )
         self.robot.hz = self.hz
@@ -53,7 +53,6 @@ class FrankaArm(Arm):
             else self.robot.get_joint_positions()
         )
         self._ik_solver = RobotIKSolver()
-        self.reset()
 
     def set_home(self, home):
         self.home = home
@@ -132,6 +131,33 @@ class FrankaArm(Arm):
         for joint_position in joint_positions:
             self.robot.update_current_policy({"q_desired": joint_position})
             rate.sleep()
+
+    def soft_ctrl(self, action_target, time_to_go=4):
+        goal = torch.Tensor(action_target)
+        
+        # Create policy instance
+        q_initial = self.robot.get_joint_positions()
+        waypoints = toco.planning.generate_joint_space_min_jerk(
+            start=q_initial, goal=goal, time_to_go=time_to_go, hz=self.hz
+        )
+        rate = Rate(self.hz)
+        joint_positions = [waypoint["position"] for waypoint in waypoints]
+
+        q_initial = self.robot.get_joint_positions()
+        kq = torch.Tensor(self.robot.metadata.default_Kq)
+        kqd = torch.Tensor(self.robot.metadata.default_Kqd)
+        policy = JointPDPolicy(
+            desired_joint_pos=q_initial,
+            kq=kq,
+            kqd=kqd,
+        )
+        self.robot.send_torch_policy(policy, blocking=False)
+        rate.sleep()
+        for joint_position in joint_positions:
+            self.robot.update_current_policy({"q_desired": joint_position})
+            rate.sleep()
+            
+        self.connect()
 
     def _default_policy(self, action_space, kq_ratio=1.5, kqd_ratio=1.5):
         q_initial = self.robot.get_joint_positions()
@@ -228,7 +254,6 @@ class FrankaArm(Arm):
     def step(self, action):
         action_obs = {"delta": self.delta, "action": action.copy()}
 
-        # import pdb; pdb.set_trace()
         if self.action_space == ActionSpace.Cartesian:
             if self.ik_mode == IKMode.Polymetis:
                 self._apply_eef_commands(action)

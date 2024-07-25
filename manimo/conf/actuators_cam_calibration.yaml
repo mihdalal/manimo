@@ -1,0 +1,7 @@
+defaults:
+  - arm: franka_arm
+
+arm:
+  arm0:
+    arm_cfg:
+      action_space: Cartesian

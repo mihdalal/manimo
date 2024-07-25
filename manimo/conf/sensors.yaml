@@ -1,4 +1,2 @@
 defaults:
-  - camera: zed
-#   # - camera: real_sense
-#   - tactile: reskin
+  - camera: multi_real_sense_neural_mp

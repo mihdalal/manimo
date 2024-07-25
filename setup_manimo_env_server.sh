@@ -1,7 +1,7 @@
 #! /bin/sh
 
 # Install polymetis from source
-git clone git@github.com:hengyuan-hu/monometis.git
+git clone git@github.com:mihdalal/monometis.git
 cd monometis/
 mamba env create -f polymetis/environment_cpu.yml -n manimo-latest
 conda activate manimo-latest
