@@ -44,8 +44,7 @@ class FrankaArm(Arm):
         self.robot = RobotInterface(
             ip_address=self.config.robot_ip, enforce_version=False
         )
-        if self.config.ik_mode == 'DMControl':
-            self.robot.hz = self.hz
+        self.robot.hz = self.hz
         self.kq = arm_cfg.kq
         self.kqd = arm_cfg.kqd
         self.home = (
@@ -166,6 +165,7 @@ class FrankaArm(Arm):
         kqd = kqd_ratio * torch.Tensor(self.kqd)
         kx = torch.Tensor(self.robot.metadata.default_Kx)
         kxd = torch.Tensor(self.robot.metadata.default_Kxd)
+
         if action_space == ActionSpace.Joint:
             return toco.policies.HybridJointImpedanceControl(
                 joint_pos_current=q_initial,
@@ -253,6 +253,7 @@ class FrankaArm(Arm):
 
     def step(self, action):
         action_obs = {"delta": self.delta, "action": action.copy()}
+
         if self.action_space == ActionSpace.Cartesian:
             if self.ik_mode == IKMode.Polymetis:
                 self._apply_eef_commands(action)

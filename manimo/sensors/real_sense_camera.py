@@ -16,6 +16,7 @@ def add_image(
     depth_frame_queue: Queue,
     hz: float,
     closed: Value,
+    apply_depth_processing = True,
 ):
     # Configure depth and color streams
     pipe = rs.pipeline()
@@ -49,10 +50,11 @@ def add_image(
             time.sleep(1.0 / camera_cfg.hz)
 
     align = rs.align(rs.stream.color)
-    depth_processing = (
-            rs.hole_filling_filter(),
-            rs.temporal_filter(),
-        )
+    if apply_depth_processing:
+        depth_processing = (
+                rs.hole_filling_filter(),
+                rs.temporal_filter(),
+            )
     step = 0
     rate = Rate(hz)
     try:
@@ -64,8 +66,9 @@ def add_image(
                 color_frame = frames.get_color_frame()
                 if not depth_frame or not color_frame:
                     continue
-                for img_filter in depth_processing:
-                    depth_frame = img_filter.process(depth_frame)
+                if apply_depth_processing:
+                    for img_filter in depth_processing:
+                        depth_frame = img_filter.process(depth_frame)
                 depth_image = np.asanyarray(depth_frame.get_data())
                 depth_timestamp = depth_frame.get_timestamp()
                 color_image = np.asanyarray(color_frame.get_data())
