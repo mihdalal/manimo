@@ -252,15 +252,19 @@ class FrankaArm(Arm):
 
         return update_success
 
+    def _apply_eef_commands_osc(self, action, time_to_go=None, delta=False, op_space_interp=False):
+        self.robot.move_to_ee_pose(action[:3], action[3:], time_to_go=time_to_go, delta=delta, op_space_interp=op_space_interp)
+        desired_joint_action = torch.zeros(7)
+        ee_pos_desired = torch.zeros(3)
+        ee_quat_desired = torch.zeros(4)
+        return desired_joint_action, ee_pos_desired, ee_quat_desired
+
     def step(self, action):
         action_obs = {"delta": self.delta, "action": action.copy()}
 
         if self.action_space == ActionSpace.Cartesian:
             if self.ik_mode == IKMode.Polymetis:
-                self.robot.move_to_ee_pose(action[:3], action[3:], delta=False, time_to_go=None, op_space_interp=False)
-                desired_joint_action = torch.zeros(7)
-                ee_pos_desired = torch.zeros(3)
-                ee_quat_desired = torch.zeros(4)
+                desired_joint_action, ee_pos_desired, ee_quat_desired = self._apply_eef_commands(action)
 
             elif self.ik_mode == IKMode.DMControl:
                 ee_pos_current, ee_quat_current = self.robot.get_ee_pose()
